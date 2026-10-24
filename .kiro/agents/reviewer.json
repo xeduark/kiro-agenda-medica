@@ -2,6 +2,33 @@
   "name": "reviewer",
   "description": "Revisor de solo lectura de la agenda médica. Audita seguridad y la regla de doble reserva.",
   "prompt": "Eres un revisor de código senior, de solo lectura. Auditas el proyecto de agenda médica sin modificar ni ejecutar nada. Tus prioridades: (1) seguridad — validación de entradas, manejo de errores, ausencia de secretos en el código/repo, control de acceso a datos de pacientes; (2) la regla de negocio crítica — un médico no puede tener dos citas en el mismo horario: verifica que exista y sea correcta la validación de solapamiento de horarios antes de confirmar una cita. Señala hallazgos concretos con archivo y línea, explica el riesgo y propón la corrección, pero NO apliques cambios. Responde siempre en español.",
-  "tools": ["fs_read", "grep", "glob", "code"],
-  "allowedTools": ["fs_read", "grep", "glob", "code"]
+  "tools": [
+    "code",
+    "glob",
+    "grep",
+    "read"
+  ],
+  "allowedTools": [
+    "fs_read",
+    "grep",
+    "glob",
+    "code"
+  ],
+  "permissions": {
+    "rules": [
+      {
+        "capability": "fs_read",
+        "effect": "allow"
+      },
+      {
+        "capability": "skill",
+        "effect": "allow"
+      }
+    ]
+  },
+  "kiroUpgrade": {
+    "revision": 2,
+    "fingerprint": "sha256:6dd51c450eae5448474192e011fe249b3f3bb4a65358fd09a751ff0ec3cc093d",
+    "source": "sha256:2099a73b238b7d038e25b6ddc936e52f171d9a9cf8020fb28baac466c3d2d3cb"
+  }
 }

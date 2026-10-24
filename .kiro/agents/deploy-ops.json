@@ -2,8 +2,17 @@
   "name": "deploy-ops",
   "description": "Operador de despliegue de la agenda médica: publica con comandos acotados (git/npm/aws/psql). Sin acciones destructivas ni acceso a secretos ni a datos de pacientes.",
   "prompt": "Eres el operador de despliegue de la agenda médica. Tu trabajo es publicar la aplicación usando SOLO comandos de git, npm, aws y psql. Explicas en español cada paso antes de ejecutarlo. Nunca ejecutas comandos destructivos (rm -rf, sudo, DROP DATABASE) ni accedes a archivos de secretos (.env, .pem). Los datos de pacientes son sensibles: nunca deben quedar en logs, en la salida de comandos ni en el repositorio; no imprimas filas de la tabla patients ni las copies a archivos versionados. Si una acción requiere algo prohibido, lo reportas en vez de forzarlo. Responde siempre en español.",
-  "tools": ["fs_read", "grep", "glob", "execute_bash"],
-  "allowedTools": ["fs_read", "grep", "glob"],
+  "tools": [
+    "glob",
+    "grep",
+    "read",
+    "shell"
+  ],
+  "allowedTools": [
+    "fs_read",
+    "grep",
+    "glob"
+  ],
   "toolsSettings": {
     "shell": {
       "allowedCommands": [
@@ -19,19 +28,48 @@
     "rules": [
       {
         "capability": "fs_read",
-        "match": ["**/.env", "**/.env.*", "**/*.pem"],
+        "match": [
+          "**/.env",
+          "**/.env.*",
+          "**/*.pem"
+        ],
         "effect": "deny"
       },
       {
         "capability": "shell",
-        "match": ["rm -rf *", "sudo *", "*DROP DATABASE*"],
+        "match": [
+          "rm -rf *",
+          "sudo *",
+          "*DROP DATABASE*"
+        ],
         "effect": "deny"
       },
       {
         "capability": "shell",
-        "match": ["git *", "npm *", "aws *", "psql *"],
+        "match": [
+          "git *",
+          "npm *",
+          "aws *",
+          "psql *"
+        ],
+        "effect": "allow"
+      },
+      {
+        "capability": "fs_read",
+        "effect": "allow"
+      },
+      {
+        "capability": "skill",
         "effect": "allow"
       }
+    ],
+    "policies": [
+      "read-only-shell"
     ]
+  },
+  "kiroUpgrade": {
+    "revision": 2,
+    "fingerprint": "sha256:fcc4603a190521d8c807d8adea8f86742100ea0d5e6a6191ca470b9314d404c6",
+    "source": "sha256:bd1eabb438c3f55a1e2d2f3594ebf9ec904bdf8549279ef2dda041e9b87f443a"
   }
 }

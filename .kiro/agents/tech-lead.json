@@ -2,12 +2,61 @@
   "name": "tech-lead",
   "description": "Líder técnico de la agenda médica: planifica y REPARTE el trabajo entre los especialistas (arquitecto, backend-dev, frontend-dev, reviewer), en paralelo, y consolida los resultados.",
   "prompt": "Eres el líder técnico del proyecto de agenda médica (pacientes, médicos, horarios y citas). No implementas tú: tu trabajo es ENTENDER la tarea, dividirla en subtareas y DELEGARLA en los agentes especialistas usando sub-agents. Corre en paralelo lo que sea independiente (p. ej. backend y frontend a la vez) y espera a las dependencias cuando las haya. Elige al agente por su rol: arquitecto (diseño), backend-dev (API Express + PostgreSQL), frontend-dev (React), reviewer (auditoría de solo lectura). Recuerda la regla de negocio clave que debe respetarse en todo el sistema: un médico no puede tener dos citas en el mismo horario. Cuando los especialistas terminen, consolidas y resumes en español. Responde siempre en español.",
-  "tools": ["fs_read", "grep", "glob", "subagent"],
-  "allowedTools": ["fs_read", "grep", "glob"],
+  "tools": [
+    "glob",
+    "grep",
+    "read",
+    "subagent/arquitecto",
+    "subagent/backend-dev",
+    "subagent/frontend-dev",
+    "subagent/reviewer"
+  ],
+  "allowedTools": [
+    "fs_read",
+    "grep",
+    "glob"
+  ],
   "toolsSettings": {
     "subagent": {
-      "availableAgents": ["arquitecto", "backend-dev", "frontend-dev", "reviewer"],
-      "trustedAgents": ["arquitecto", "backend-dev", "frontend-dev", "reviewer"]
+      "availableAgents": [
+        "arquitecto",
+        "backend-dev",
+        "frontend-dev",
+        "reviewer"
+      ],
+      "trustedAgents": [
+        "arquitecto",
+        "backend-dev",
+        "frontend-dev",
+        "reviewer"
+      ]
     }
+  },
+  "permissions": {
+    "rules": [
+      {
+        "capability": "subagent",
+        "match": [
+          "arquitecto",
+          "backend-dev",
+          "frontend-dev",
+          "reviewer"
+        ],
+        "effect": "allow"
+      },
+      {
+        "capability": "fs_read",
+        "effect": "allow"
+      },
+      {
+        "capability": "skill",
+        "effect": "allow"
+      }
+    ]
+  },
+  "kiroUpgrade": {
+    "revision": 2,
+    "fingerprint": "sha256:97b71f82c457028c17cbfa2b8f6e6b00dd18a5947d8725333d7b9597acb8a908",
+    "source": "sha256:1fdadf3195d8dd7eb874f5b68951f7f4ee602ff2273ab6c40054684ae7f596d8"
   }
 }
