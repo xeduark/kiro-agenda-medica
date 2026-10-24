@@ -4,7 +4,7 @@
     {
       "name": "qa-tests-on-write",
       "trigger": "PostToolUse",
-      "matcher": "fs_write",
+      "matcher": "write_file",
       "action": {
         "type": "command",
         "command": "if [ -f backend/package.json ]; then cd backend && npm test 2>&1 | tail -30; elif [ -f package.json ]; then npm test 2>&1 | tail -30; else echo 'Sin backend/package.json aun - nada que testear.'; fi"

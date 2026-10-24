@@ -4,10 +4,10 @@
     {
       "name": "guard-dangerous-shell",
       "trigger": "PreToolUse",
-      "matcher": "execute_bash",
+      "matcher": "execute_command",
       "action": {
         "type": "command",
-        "command": "evt=$(cat); if [ -z \"$evt\" ]; then echo 'BLOQUEADO: no se pudo leer el comando (fail-closed).' >&2; exit 2; fi; if printf '%s' \"$evt\" | grep -Eiq 'rm +(-[a-z]*f[a-z]*|--force|--recursive).*|rm +-[a-z]*r|(^|[^a-z])sudo([^a-z]|$)|\\.env($|[^a-z])|secrets?|credentials?|patients|datos +de +pacientes|pacientes'; then echo 'BLOQUEADO: patron peligroso o sensible (rm -rf, sudo, .env o datos de pacientes).' >&2; exit 2; fi; exit 0"
+        "command": "node .kiro/hooks/guard-shell.js"
       }
     }
   ]
