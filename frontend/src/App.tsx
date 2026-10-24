@@ -2,10 +2,18 @@ import { useEffect, useState, type FormEvent } from "react";
 
 const API = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
-type Item = { id: string; full_name: string; document_id?: string; phone?: string | null; email?: string | null };
+type Item = { id: string; full_name: string; specialty?: string; document_id?: string; phone?: string | null; email?: string | null };
 type Appt = { id: string; starts_at: string; ends_at: string; patient_id: string };
+type View = "agenda" | "medicos" | "pacientes";
+
+const NAV: { id: View; label: string; icon: string; title: string; sub: string }[] = [
+  { id: "agenda", label: "Agenda", icon: "▦", title: "Agenda", sub: "Agenda citas sin dobles reservas." },
+  { id: "medicos", label: "Médicos", icon: "✚", title: "Médicos", sub: "Registra y consulta los médicos del consultorio." },
+  { id: "pacientes", label: "Pacientes", icon: "☺", title: "Pacientes", sub: "Registra, consulta y edita pacientes." },
+];
 
 export default function App() {
+  const [view, setView] = useState<View>("agenda");
   const [doctors, setDoctors] = useState<Item[]>([]);
   const [patients, setPatients] = useState<Item[]>([]);
   const [doctorId, setDoctorId] = useState("");
@@ -52,92 +60,148 @@ export default function App() {
 
   const doctor = doctors.find((d) => d.id === doctorId);
   const longDate = new Date(`${date}T12:00`).toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long" });
+  const current = NAV.find((n) => n.id === view)!;
 
   return (
-    <>
-      <header className="header">
-        <div className="header-inner">
+    <div className="shell">
+      <aside className="sidebar">
+        <div className="brand">
           <div className="logo" aria-hidden="true">+</div>
           <div>
-            <h1>Agenda médica</h1>
-            <p>Citas por médico, sin dobles reservas</p>
+            <strong>Agenda médica</strong>
+            <small>Consultorio</small>
           </div>
         </div>
-      </header>
+        <nav aria-label="Secciones">
+          {NAV.map((n) => (
+            <button
+              key={n.id}
+              type="button"
+              className={`nav-item${view === n.id ? " active" : ""}`}
+              aria-current={view === n.id ? "page" : undefined}
+              aria-label={n.label}
+              onClick={() => setView(n.id)}
+            >
+              <span aria-hidden="true">{n.icon}</span>
+              <em>{n.label}</em>
+            </button>
+          ))}
+        </nav>
+      </aside>
 
-      <main className="layout">
-        <section className="card" aria-labelledby="form-title">
-          <h2 id="form-title">Nueva cita</h2>
-          <p className="sub">Elige médico, paciente y horario.</p>
-          <form onSubmit={submit}>
-            <label>Médico
-              <select value={doctorId} onChange={(e) => setDoctorId(e.target.value)}>
-                {doctors.map((d) => <option key={d.id} value={d.id}>{d.full_name}</option>)}
-              </select>
-            </label>
-            <label>Paciente
-              <select value={patientId} onChange={(e) => setPatientId(e.target.value)}>
-                {patients.map((p) => <option key={p.id} value={p.id}>{p.full_name}</option>)}
-              </select>
-            </label>
-            <label>Fecha
-              <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
-            </label>
-            <div className="row">
-              <label>Inicio
-                <input type="time" value={start} onChange={(e) => setStart(e.target.value)} required />
-              </label>
-              <label>Fin
-                <input type="time" value={end} onChange={(e) => setEnd(e.target.value)} required />
-              </label>
-            </div>
-            <button type="submit" disabled={sending}>{sending ? "Agendando…" : "Agendar cita"}</button>
-          </form>
-          {msg && <p role="alert" className={`alert ${msg.ok ? "ok" : "err"}`}>{msg.text}</p>}
-        </section>
+      <div className="content">
+        <header className="topbar">
+          <h1>{current.title}</h1>
+          <p>{current.sub}</p>
+        </header>
 
-        <section className="card" aria-labelledby="agenda-title">
-          <div className="agenda-head">
-            <div>
-              <h2 id="agenda-title">Agenda del día</h2>
-              <p className="sub" style={{ margin: 0 }}>{doctor?.full_name ?? "—"} · {longDate}</p>
-            </div>
-            <span className="badge">{agenda.length} {agenda.length === 1 ? "cita" : "citas"}</span>
-          </div>
-          {agenda.length === 0 ? (
-            <p className="empty">No hay citas para este día.</p>
-          ) : (
-            <ul className="slots">
-              {agenda.map((a) => (
-                <li key={a.id} className="slot">
-                  <time dateTime={a.starts_at}>{time(a.starts_at)} – {time(a.ends_at)}</time>
-                  <span>{name(a.patient_id)}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-        <section className="card wide" aria-labelledby="reg-title">
-          <h2 id="reg-title">Registrar</h2>
-          <p className="sub">Agrega médicos y pacientes nuevos.</p>
-          <div className="row">
-            <QuickForm
-              title="Médico"
-              path="doctors"
-              fields={[{ key: "full_name", label: "Nombre completo" }, { key: "specialty", label: "Especialidad" }]}
-              onCreated={loadLists}
-            />
-            <QuickForm
-              title="Paciente"
-              path="patients"
-              fields={[{ key: "full_name", label: "Nombre completo" }, { key: "document_id", label: "Documento" }, { key: "phone", label: "Teléfono", optional: true }]}
-              onCreated={loadLists}
-            />
-            <EditPatient patients={patients} onSaved={loadLists} />
-          </div>
-        </section>
-      </main>
-    </>
+        <div className="stats">
+          <div className="stat"><span>Médicos</span><strong>{doctors.length}</strong></div>
+          <div className="stat"><span>Pacientes</span><strong>{patients.length}</strong></div>
+          <div className="stat"><span>Citas del día</span><strong>{agenda.length}</strong></div>
+        </div>
+
+        {view === "agenda" && (
+          <main className="layout">
+            <section className="card" aria-labelledby="form-title">
+              <h2 id="form-title">Nueva cita</h2>
+              <p className="sub">Elige médico, paciente y horario.</p>
+              <form onSubmit={submit}>
+                <label>Médico
+                  <select value={doctorId} onChange={(e) => setDoctorId(e.target.value)}>
+                    {doctors.map((d) => <option key={d.id} value={d.id}>{d.full_name}</option>)}
+                  </select>
+                </label>
+                <label>Paciente
+                  <select value={patientId} onChange={(e) => setPatientId(e.target.value)}>
+                    {patients.map((p) => <option key={p.id} value={p.id}>{p.full_name}</option>)}
+                  </select>
+                </label>
+                <label>Fecha
+                  <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+                </label>
+                <div className="row">
+                  <label>Inicio
+                    <input type="time" value={start} onChange={(e) => setStart(e.target.value)} required />
+                  </label>
+                  <label>Fin
+                    <input type="time" value={end} onChange={(e) => setEnd(e.target.value)} required />
+                  </label>
+                </div>
+                <button type="submit" disabled={sending}>{sending ? "Agendando…" : "Agendar cita"}</button>
+              </form>
+              {msg && <p role="alert" className={`alert ${msg.ok ? "ok" : "err"}`}>{msg.text}</p>}
+            </section>
+
+            <section className="card" aria-labelledby="agenda-title">
+              <div className="agenda-head">
+                <div>
+                  <h2 id="agenda-title">Agenda del día</h2>
+                  <p className="sub" style={{ margin: 0 }}>{doctor?.full_name ?? "—"} · {longDate}</p>
+                </div>
+                <span className="badge">{agenda.length} {agenda.length === 1 ? "cita" : "citas"}</span>
+              </div>
+              {agenda.length === 0 ? (
+                <p className="empty">No hay citas para este día.</p>
+              ) : (
+                <ul className="slots">
+                  {agenda.map((a) => (
+                    <li key={a.id} className="slot">
+                      <time dateTime={a.starts_at}>{time(a.starts_at)} – {time(a.ends_at)}</time>
+                      <span>{name(a.patient_id)}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          </main>
+        )}
+
+        {view === "medicos" && (
+          <main className="layout">
+            <section className="card">
+              <QuickForm
+                title="Médico"
+                path="doctors"
+                fields={[{ key: "full_name", label: "Nombre completo" }, { key: "specialty", label: "Especialidad" }]}
+                onCreated={loadLists}
+              />
+            </section>
+            <section className="card" aria-labelledby="doc-list">
+              <h2 id="doc-list">Listado</h2>
+              <p className="sub">{doctors.length} médicos registrados.</p>
+              <table>
+                <thead><tr><th>Nombre</th><th>Especialidad</th></tr></thead>
+                <tbody>{doctors.map((d) => <tr key={d.id}><td>{d.full_name}</td><td>{d.specialty}</td></tr>)}</tbody>
+              </table>
+            </section>
+          </main>
+        )}
+
+        {view === "pacientes" && (
+          <main className="layout">
+            <section className="card stack">
+              <QuickForm
+                title="Paciente"
+                path="patients"
+                fields={[{ key: "full_name", label: "Nombre completo" }, { key: "document_id", label: "Documento" }, { key: "phone", label: "Teléfono", optional: true }]}
+                onCreated={loadLists}
+              />
+              <hr />
+              <EditPatient patients={patients} onSaved={loadLists} />
+            </section>
+            <section className="card" aria-labelledby="pat-list">
+              <h2 id="pat-list">Listado</h2>
+              <p className="sub">{patients.length} pacientes registrados.</p>
+              <table>
+                <thead><tr><th>Nombre</th><th>Documento</th><th>Teléfono</th></tr></thead>
+                <tbody>{patients.map((p) => <tr key={p.id}><td>{p.full_name}</td><td>{p.document_id}</td><td>{p.phone ?? "—"}</td></tr>)}</tbody>
+              </table>
+            </section>
+          </main>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -162,7 +226,7 @@ function QuickForm({ title, path, fields, onCreated }: { title: string; path: st
 
   return (
     <form onSubmit={submit} aria-label={`Registrar ${title.toLowerCase()}`}>
-      <h3 style={{ margin: 0 }}>{title}</h3>
+      <h2 style={{ margin: 0 }}>Registrar {title.toLowerCase()}</h2>
       {fields.map((f) => (
         <label key={f.key}>{f.label}{f.optional ? " (opcional)" : ""}
           <input value={values[f.key]} required={!f.optional} onChange={(e) => setValues({ ...values, [f.key]: e.target.value })} />
@@ -206,7 +270,7 @@ function EditPatient({ patients, onSaved }: { patients: Item[]; onSaved: () => v
 
   return (
     <form onSubmit={submit} aria-label="Editar paciente">
-      <h3 style={{ margin: 0 }}>Editar paciente</h3>
+      <h2 style={{ margin: 0 }}>Editar paciente</h2>
       <label>Paciente
         <select value={id} onChange={(e) => pick(e.target.value)} required>
           <option value="">Elige un paciente…</option>
