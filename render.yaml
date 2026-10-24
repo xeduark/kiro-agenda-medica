@@ -1,12 +1,12 @@
 databases:
-  - name: agenda-db
+  - name: kiro-agenda-db
     plan: free
     databaseName: agenda
     user: agenda
 
 services:
   - type: web
-    name: agenda-api
+    name: kiro-agenda-api
     runtime: node
     plan: free
     rootDir: backend
@@ -19,7 +19,7 @@ services:
         value: production
       - key: DATABASE_URL
         fromDatabase:
-          name: agenda-db
+          name: kiro-agenda-db
           property: connectionString
       - key: CORS_ORIGIN
         sync: false
