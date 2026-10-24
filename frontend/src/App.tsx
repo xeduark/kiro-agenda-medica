@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 
 const API = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
-type Item = { id: string; full_name: string };
+type Item = { id: string; full_name: string; document_id?: string; phone?: string | null; email?: string | null };
 type Appt = { id: string; starts_at: string; ends_at: string; patient_id: string };
 
 export default function App() {
@@ -133,6 +133,7 @@ export default function App() {
               fields={[{ key: "full_name", label: "Nombre completo" }, { key: "document_id", label: "Documento" }, { key: "phone", label: "Teléfono", optional: true }]}
               onCreated={loadLists}
             />
+            <EditPatient patients={patients} onSaved={loadLists} />
           </div>
         </section>
       </main>
@@ -168,6 +169,55 @@ function QuickForm({ title, path, fields, onCreated }: { title: string; path: st
         </label>
       ))}
       <button type="submit">Registrar {title.toLowerCase()}</button>
+      {msg && <p role="alert" className={`alert ${msg.ok ? "ok" : "err"}`} style={{ margin: 0 }}>{msg.text}</p>}
+    </form>
+  );
+}
+
+function EditPatient({ patients, onSaved }: { patients: Item[]; onSaved: () => void }) {
+  const [id, setId] = useState("");
+  const [values, setValues] = useState({ full_name: "", document_id: "", phone: "", email: "" });
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  function pick(newId: string) {
+    setId(newId);
+    setMsg(null);
+    const p = patients.find((x) => x.id === newId);
+    setValues({ full_name: p?.full_name ?? "", document_id: p?.document_id ?? "", phone: p?.phone ?? "", email: p?.email ?? "" });
+  }
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    const res = await fetch(`${API}/patients/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(values),
+    });
+    const body = await res.json();
+    setMsg(res.ok ? { ok: true, text: `Paciente actualizado: ${body.full_name}.` } : { ok: false, text: body.error });
+    if (res.ok) onSaved();
+  }
+
+  const field = (key: keyof typeof values, label: string, required = true) => (
+    <label>{label}{required ? "" : " (opcional)"}
+      <input value={values[key]} required={required} disabled={!id} onChange={(e) => setValues({ ...values, [key]: e.target.value })} />
+    </label>
+  );
+
+  return (
+    <form onSubmit={submit} aria-label="Editar paciente">
+      <h3 style={{ margin: 0 }}>Editar paciente</h3>
+      <label>Paciente
+        <select value={id} onChange={(e) => pick(e.target.value)} required>
+          <option value="">Elige un paciente…</option>
+          {patients.map((p) => <option key={p.id} value={p.id}>{p.full_name}</option>)}
+        </select>
+      </label>
+      {field("full_name", "Nombre completo")}
+      {field("document_id", "Documento")}
+      {field("phone", "Teléfono", false)}
+      {field("email", "Correo", false)}
+      <button type="submit" disabled={!id}>Guardar cambios</button>
       {msg && <p role="alert" className={`alert ${msg.ok ? "ok" : "err"}`} style={{ margin: 0 }}>{msg.text}</p>}
     </form>
   );

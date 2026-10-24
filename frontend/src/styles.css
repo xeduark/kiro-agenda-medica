@@ -141,7 +141,8 @@ button {
 
 button:hover { filter: brightness(1.06); }
 button:active { transform: scale(0.98); }
-button:disabled { opacity: 0.6; cursor: progress; }
+button:disabled { opacity: 0.6; cursor: not-allowed; }
+input:disabled { opacity: 0.6; }
 
 .alert {
   margin: 16px 0 0;
@@ -195,5 +196,5 @@ button:disabled { opacity: 0.6; cursor: progress; }
 }
 
 .wide { grid-column: 1 / -1; }
-.wide .row { align-items: start; gap: 24px; }
+.wide .row { grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start; gap: 24px; }
 @media (max-width: 820px) { .wide .row { grid-template-columns: 1fr; } }
