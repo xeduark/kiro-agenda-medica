@@ -17,10 +17,11 @@ export default function App() {
   const [sending, setSending] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
-  useEffect(() => {
-    fetch(`${API}/doctors`).then((r) => r.json()).then((d) => { setDoctors(d); setDoctorId(d[0]?.id ?? ""); });
-    fetch(`${API}/patients`).then((r) => r.json()).then((p) => { setPatients(p); setPatientId(p[0]?.id ?? ""); });
-  }, []);
+  const loadLists = () => {
+    fetch(`${API}/doctors`).then((r) => r.json()).then((d: Item[]) => { setDoctors(d); setDoctorId((cur) => cur || (d[0]?.id ?? "")); });
+    fetch(`${API}/patients`).then((r) => r.json()).then((p: Item[]) => { setPatients(p); setPatientId((cur) => cur || (p[0]?.id ?? "")); });
+  };
+  useEffect(loadLists, []);
 
   const loadAgenda = () => {
     if (doctorId) fetch(`${API}/doctors/${doctorId}/appointments?date=${date}`).then((r) => r.json()).then(setAgenda);
@@ -116,7 +117,58 @@ export default function App() {
             </ul>
           )}
         </section>
+        <section className="card wide" aria-labelledby="reg-title">
+          <h2 id="reg-title">Registrar</h2>
+          <p className="sub">Agrega médicos y pacientes nuevos.</p>
+          <div className="row">
+            <QuickForm
+              title="Médico"
+              path="doctors"
+              fields={[{ key: "full_name", label: "Nombre completo" }, { key: "specialty", label: "Especialidad" }]}
+              onCreated={loadLists}
+            />
+            <QuickForm
+              title="Paciente"
+              path="patients"
+              fields={[{ key: "full_name", label: "Nombre completo" }, { key: "document_id", label: "Documento" }, { key: "phone", label: "Teléfono", optional: true }]}
+              onCreated={loadLists}
+            />
+          </div>
+        </section>
       </main>
     </>
+  );
+}
+
+type Field = { key: string; label: string; optional?: boolean };
+
+function QuickForm({ title, path, fields, onCreated }: { title: string; path: string; fields: Field[]; onCreated: () => void }) {
+  const empty = Object.fromEntries(fields.map((f) => [f.key, ""]));
+  const [values, setValues] = useState<Record<string, string>>(empty);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    const res = await fetch(`${API}/${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(values),
+    });
+    const body = await res.json();
+    setMsg(res.ok ? { ok: true, text: `${title} registrado: ${body.full_name}.` } : { ok: false, text: body.error });
+    if (res.ok) { setValues(empty); onCreated(); }
+  }
+
+  return (
+    <form onSubmit={submit} aria-label={`Registrar ${title.toLowerCase()}`}>
+      <h3 style={{ margin: 0 }}>{title}</h3>
+      {fields.map((f) => (
+        <label key={f.key}>{f.label}{f.optional ? " (opcional)" : ""}
+          <input value={values[f.key]} required={!f.optional} onChange={(e) => setValues({ ...values, [f.key]: e.target.value })} />
+        </label>
+      ))}
+      <button type="submit">Registrar {title.toLowerCase()}</button>
+      {msg && <p role="alert" className={`alert ${msg.ok ? "ok" : "err"}`} style={{ margin: 0 }}>{msg.text}</p>}
+    </form>
   );
 }

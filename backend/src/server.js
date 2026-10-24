@@ -16,7 +16,9 @@ const app = express();
 // --- Middleware ---
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || "http://localhost:5173",
+    origin: (process.env.CORS_ORIGIN || "http://localhost:5173,https://agenda-front-shm3.onrender.com")
+      .split(",")
+      .map((o) => o.trim()),
   })
 );
 app.use(express.json());

@@ -19,4 +19,23 @@ router.get("/patients", async (_req, res, next) => {
   }
 });
 
+// POST /patients — creates a patient. Body: { full_name, document_id, phone, email }
+router.post("/patients", async (req, res, next) => {
+  const body = req.body || {};
+  const clean = Object.fromEntries(["full_name", "document_id", "phone", "email"].map((k) => [k, typeof body[k] === "string" ? body[k].trim() : ""]));
+  if (!clean.full_name || !clean.document_id) {
+    return res.status(400).json({ error: "Faltan campos obligatorios: full_name, document_id." });
+  }
+  try {
+    const { rows } = await pool.query(
+      "INSERT INTO patients (full_name, document_id, phone, email) VALUES ($1, $2, $3, $4) RETURNING id, full_name",
+      ["full_name", "document_id", "phone", "email"].map((k) => clean[k] || null)
+    );
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    if (err.code === "23505") return res.status(409).json({ error: "Ya existe un paciente con ese documento." });
+    next(err);
+  }
+});
+
 module.exports = router;
