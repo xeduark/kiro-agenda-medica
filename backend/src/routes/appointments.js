@@ -6,6 +6,9 @@ const defaultRepository = require("../repositories/appointmentsRepository");
 // PostgreSQL exclusion-constraint violation code.
 const PG_EXCLUSION_VIOLATION = "23P01";
 
+// Statuses an appointment can be closed with.
+const CLOSING_STATUSES = ["completed", "cancelled"];
+
 /**
  * Factory that builds the appointments router with the given repository.
  * Accepts a custom repo so unit tests can inject a mock without touching the DB.
@@ -68,6 +71,29 @@ function makeAppointmentsRouter(repo) {
     try {
       const appointments = await repo.listByDoctorAndDate(req.params.id, date);
       return res.json(appointments);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  /**
+   * PATCH /appointments/:id/status
+   * Body: { status: "completed" | "cancelled" }
+   */
+  router.patch("/appointments/:id/status", async (req, res, next) => {
+    const { status } = req.body || {};
+    if (!/^\d+$/.test(req.params.id)) {
+      return res.status(400).json({ error: "Id de cita inválido." });
+    }
+    if (!CLOSING_STATUSES.includes(status)) {
+      return res.status(400).json({ error: "status debe ser 'completed' o 'cancelled'." });
+    }
+    try {
+      const appointment = await repo.updateStatus(req.params.id, status);
+      if (!appointment) {
+        return res.status(404).json({ error: "La cita no existe o ya fue cerrada." });
+      }
+      return res.json(appointment);
     } catch (err) {
       next(err);
     }

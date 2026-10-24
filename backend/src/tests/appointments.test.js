@@ -181,3 +181,46 @@ describe("POST /appointments", () => {
     assert.ok(!createCalled, "repo.create must NOT be called when fields are missing");
   });
 });
+
+// ---------------------------------------------------------------------------
+// PATCH /appointments/:id/status
+// ---------------------------------------------------------------------------
+
+function callPatch(router, id, body) {
+  return new Promise((resolve, reject) => {
+    const req = makeReq(body, { id });
+    req.method = "PATCH";
+    req.url = `/appointments/${id}/status`;
+    const res = makeRes();
+    const originalJson = res.json.bind(res);
+    res.json = function (b) {
+      originalJson(b);
+      resolve(res);
+      return this;
+    };
+    router(req, res, (err) => (err ? reject(err) : resolve(res)));
+  });
+}
+
+describe("PATCH /appointments/:id/status", () => {
+  test("cancel a confirmed appointment → 200", async () => {
+    const repo = { updateStatus: async (id, status) => ({ id, status }) };
+    const res = await callPatch(makeAppointmentsRouter(repo), "1", { status: "cancelled" });
+    assert.equal(res._status, 200);
+    assert.equal(res._body.status, "cancelled");
+  });
+
+  test("invalid status → 400 without touching repo", async () => {
+    let called = false;
+    const repo = { updateStatus: async () => { called = true; } };
+    const res = await callPatch(makeAppointmentsRouter(repo), "1", { status: "deleted" });
+    assert.equal(res._status, 400);
+    assert.equal(called, false);
+  });
+
+  test("already closed or missing → 404", async () => {
+    const repo = { updateStatus: async () => undefined };
+    const res = await callPatch(makeAppointmentsRouter(repo), "1", { status: "completed" });
+    assert.equal(res._status, 404);
+  });
+});

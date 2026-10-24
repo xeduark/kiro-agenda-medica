@@ -3,7 +3,7 @@ import { useEffect, useState, type FormEvent } from "react";
 const API = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
 type Item = { id: string; full_name: string; specialty?: string; document_id?: string; phone?: string | null; email?: string | null };
-type Appt = { id: string; starts_at: string; ends_at: string; patient_id: string };
+type Appt = { id: string; starts_at: string; ends_at: string; patient_id: string; status: "confirmed" | "completed" | "cancelled" };
 type View = "agenda" | "medicos" | "pacientes";
 
 const NAV: { id: View; label: string; icon: string; title: string; sub: string }[] = [
@@ -53,6 +53,19 @@ export default function App() {
     setMsg(res.ok ? { ok: true, text: "Cita agendada correctamente." } : { ok: false, text: body.error });
     setSending(false);
     if (res.ok) loadAgenda();
+  }
+
+  async function closeAppt(a: Appt, status: "completed" | "cancelled") {
+    const verb = status === "cancelled" ? "cancelar" : "marcar como atendida";
+    if (!window.confirm(`¿Seguro que quieres ${verb} la cita de ${name(a.patient_id)} a las ${time(a.starts_at)}?`)) return;
+    const res = await fetch(`${API}/appointments/${a.id}/status`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
+    const body = await res.json();
+    setMsg(res.ok ? { ok: true, text: status === "cancelled" ? "Cita cancelada. El horario quedó libre." : "Cita marcada como atendida." } : { ok: false, text: body.error });
+    loadAgenda();
   }
 
   const time = (s: string) => new Date(s).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" });
@@ -146,9 +159,17 @@ export default function App() {
               ) : (
                 <ul className="slots">
                   {agenda.map((a) => (
-                    <li key={a.id} className="slot">
+                    <li key={a.id} className={`slot ${a.status}`}>
                       <time dateTime={a.starts_at}>{time(a.starts_at)} – {time(a.ends_at)}</time>
                       <span>{name(a.patient_id)}</span>
+                      {a.status === "confirmed" ? (
+                        <div className="slot-actions">
+                          <button type="button" className="btn-sm" onClick={() => closeAppt(a, "completed")}>Atendida</button>
+                          <button type="button" className="btn-sm ghost" onClick={() => closeAppt(a, "cancelled")}>Cancelar</button>
+                        </div>
+                      ) : (
+                        <em className="status-tag">Atendida</em>
+                      )}
                     </li>
                   ))}
                 </ul>

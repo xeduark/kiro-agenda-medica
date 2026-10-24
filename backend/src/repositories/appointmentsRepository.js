@@ -40,4 +40,20 @@ async function listByDoctorAndDate(doctorId, date) {
   return rows;
 }
 
-module.exports = { create, listByDoctorAndDate };
+/**
+ * Changes an appointment status (soft delete via 'cancelled', never DELETE).
+ * Only confirmed appointments can be closed.
+ *
+ * @returns {Promise<object|undefined>} The updated row, or undefined if not found / not confirmed.
+ */
+async function updateStatus(id, status) {
+  const { rows } = await pool.query(
+    `UPDATE appointments SET status = $1, updated_at = now()
+     WHERE id = $2 AND status = 'confirmed'
+     RETURNING id, doctor_id, patient_id, starts_at, ends_at, status`,
+    [status, id]
+  );
+  return rows[0];
+}
+
+module.exports = { create, listByDoctorAndDate, updateStatus };

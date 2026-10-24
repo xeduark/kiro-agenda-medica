@@ -216,8 +216,22 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
   border-radius: 10px;
 }
 
+.slot { grid-template-columns: 112px 1fr auto; }
 .slot time { font-weight: 700; font-variant-numeric: tabular-nums; }
 .slot span { overflow-wrap: anywhere; }
+.slot.completed { border-left-color: var(--muted); opacity: 0.75; }
+
+.slot-actions { display: flex; gap: 8px; }
+
+.btn-sm { min-height: 40px; padding: 0 14px; font-size: 0.9rem; border-radius: 10px; }
+.btn-sm.ghost { background: transparent; color: var(--err-ink); border: 1px solid var(--line); }
+.btn-sm.ghost:hover { background: var(--err-bg); filter: none; }
+
+.status-tag { font-style: normal; font-size: 0.85rem; font-weight: 700; color: var(--muted); }
+
+@media (max-width: 520px) {
+  .slot { grid-template-columns: 1fr; gap: 8px; }
+}
 
 .empty {
   padding: 32px 16px;
