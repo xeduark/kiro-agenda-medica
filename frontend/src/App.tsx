@@ -14,6 +14,7 @@ export default function App() {
   const [start, setStart] = useState("09:00");
   const [end, setEnd] = useState("09:30");
   const [agenda, setAgenda] = useState<Appt[]>([]);
+  const [sending, setSending] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   useEffect(() => {
@@ -28,6 +29,7 @@ export default function App() {
 
   async function submit(e: FormEvent) {
     e.preventDefault();
+    setSending(true);
     const res = await fetch(`${API}/appointments`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -39,41 +41,82 @@ export default function App() {
       }),
     });
     const body = await res.json();
-    setMsg(res.ok ? { ok: true, text: "Cita agendada." } : { ok: false, text: body.error });
+    setMsg(res.ok ? { ok: true, text: "Cita agendada correctamente." } : { ok: false, text: body.error });
+    setSending(false);
     if (res.ok) loadAgenda();
   }
 
   const time = (s: string) => new Date(s).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" });
   const name = (id: string) => patients.find((p) => p.id === id)?.full_name ?? id;
 
+  const doctor = doctors.find((d) => d.id === doctorId);
+  const longDate = new Date(`${date}T12:00`).toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long" });
+
   return (
-    <main style={{ fontFamily: "system-ui", maxWidth: 520, margin: "2rem auto", padding: "0 1rem", fontSize: 18 }}>
-      <h1>Agenda médica</h1>
-      <form onSubmit={submit} style={{ display: "grid", gap: 12 }}>
-        <label>Médico
-          <select value={doctorId} onChange={(e) => setDoctorId(e.target.value)} style={{ width: "100%", fontSize: 18 }}>
-            {doctors.map((d) => <option key={d.id} value={d.id}>{d.full_name}</option>)}
-          </select>
-        </label>
-        <label>Paciente
-          <select value={patientId} onChange={(e) => setPatientId(e.target.value)} style={{ width: "100%", fontSize: 18 }}>
-            {patients.map((p) => <option key={p.id} value={p.id}>{p.full_name}</option>)}
-          </select>
-        </label>
-        <label>Fecha <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required /></label>
-        <label>Inicio <input type="time" value={start} onChange={(e) => setStart(e.target.value)} required /></label>
-        <label>Fin <input type="time" value={end} onChange={(e) => setEnd(e.target.value)} required /></label>
-        <button type="submit" style={{ fontSize: 20, padding: "12px" }}>Agendar cita</button>
-      </form>
-      {msg && (
-        <p role="alert" style={{ padding: 12, background: msg.ok ? "#d1fae5" : "#fee2e2", color: msg.ok ? "#065f46" : "#991b1b" }}>
-          {msg.text}
-        </p>
-      )}
-      <h2>Agenda del día</h2>
-      {agenda.length === 0 ? <p>Sin citas.</p> : (
-        <ul>{agenda.map((a) => <li key={a.id}>{time(a.starts_at)}–{time(a.ends_at)} · {name(a.patient_id)}</li>)}</ul>
-      )}
-    </main>
+    <>
+      <header className="header">
+        <div className="header-inner">
+          <div className="logo" aria-hidden="true">+</div>
+          <div>
+            <h1>Agenda médica</h1>
+            <p>Citas por médico, sin dobles reservas</p>
+          </div>
+        </div>
+      </header>
+
+      <main className="layout">
+        <section className="card" aria-labelledby="form-title">
+          <h2 id="form-title">Nueva cita</h2>
+          <p className="sub">Elige médico, paciente y horario.</p>
+          <form onSubmit={submit}>
+            <label>Médico
+              <select value={doctorId} onChange={(e) => setDoctorId(e.target.value)}>
+                {doctors.map((d) => <option key={d.id} value={d.id}>{d.full_name}</option>)}
+              </select>
+            </label>
+            <label>Paciente
+              <select value={patientId} onChange={(e) => setPatientId(e.target.value)}>
+                {patients.map((p) => <option key={p.id} value={p.id}>{p.full_name}</option>)}
+              </select>
+            </label>
+            <label>Fecha
+              <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+            </label>
+            <div className="row">
+              <label>Inicio
+                <input type="time" value={start} onChange={(e) => setStart(e.target.value)} required />
+              </label>
+              <label>Fin
+                <input type="time" value={end} onChange={(e) => setEnd(e.target.value)} required />
+              </label>
+            </div>
+            <button type="submit" disabled={sending}>{sending ? "Agendando…" : "Agendar cita"}</button>
+          </form>
+          {msg && <p role="alert" className={`alert ${msg.ok ? "ok" : "err"}`}>{msg.text}</p>}
+        </section>
+
+        <section className="card" aria-labelledby="agenda-title">
+          <div className="agenda-head">
+            <div>
+              <h2 id="agenda-title">Agenda del día</h2>
+              <p className="sub" style={{ margin: 0 }}>{doctor?.full_name ?? "—"} · {longDate}</p>
+            </div>
+            <span className="badge">{agenda.length} {agenda.length === 1 ? "cita" : "citas"}</span>
+          </div>
+          {agenda.length === 0 ? (
+            <p className="empty">No hay citas para este día.</p>
+          ) : (
+            <ul className="slots">
+              {agenda.map((a) => (
+                <li key={a.id} className="slot">
+                  <time dateTime={a.starts_at}>{time(a.starts_at)} – {time(a.ends_at)}</time>
+                  <span>{name(a.patient_id)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      </main>
+    </>
   );
 }
