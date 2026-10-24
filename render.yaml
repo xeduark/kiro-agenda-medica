@@ -1,0 +1,25 @@
+databases:
+  - name: agenda-db
+    plan: free
+    databaseName: agenda
+    user: agenda
+
+services:
+  - type: web
+    name: agenda-api
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm ci
+    # ponytail: migrations on every start (idempotent); move to preDeployCommand on a paid plan
+    startCommand: npm run migrate && npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: agenda-db
+          property: connectionString
+      - key: CORS_ORIGIN
+        sync: false
